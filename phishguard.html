@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard — Cyber Defense Training</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0e17; color: #e0e7ff; font-family: 'Rajdhani', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  :root {
+    --bg: #0a0e17;
+    --bg-card: #111827;
+    --neon: #00ff88;
+    --danger: #ff3355;
+    --warn: #ffaa00;
+    --blue: #00aaff;
+    --text: #e0e7ff;
+    --text-dim: #6b7294;
+    --border: #1e293b;
+  }
+
+  @keyframes glitch {
+    0%, 100% { text-shadow: 2px 0 var(--danger), -2px 0 var(--neon); }
+    25% { text-shadow: -2px 2px var(--danger), 2px -2px var(--neon); }
+    50% { text-shadow: 2px -2px var(--blue), -2px 2px var(--danger); }
+    75% { text-shadow: -2px 0 var(--neon), 2px 0 var(--blue); }
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+  @keyframes ransomFlicker {
+    0%, 95%, 100% { opacity: 1; } 96% { opacity: 0.3; } 97% { opacity: 0.8; } 98% { opacity: 0.2; }
+  }
+  @keyframes cardDeal {
+    from { opacity: 0; transform: translateY(-40px) rotateY(90deg); }
+    to { opacity: 1; transform: translateY(0) rotateY(0deg); }
+  }
+  @keyframes matrixRain {
+    0% { transform: translateY(-100%); opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .scanline-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
+  }
+
+  .btn {
+    font-family: 'Orbitron', monospace; font-weight: 700; font-size: 13px;
+    padding: 12px 28px; border: 2px solid; border-radius: 4px; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 2px; transition: all 0.2s;
+    position: relative; overflow: hidden; background: transparent; display: inline-block;
+  }
+  .btn::before {
+    content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+  }
+  .btn:hover::before { left: 100%; }
+  .btn-neon { color: var(--neon); border-color: var(--neon); }
+  .btn-neon:hover { background: rgba(0,255,136,0.08); box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+  .btn-danger { color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,51,85,0.08); box-shadow: 0 0 20px rgba(255,51,85,0.2); }
+  .btn-blue { color: var(--blue); border-color: var(--blue); }
+  .btn-blue:hover { background: rgba(0,170,255,0.08); box-shadow: 0 0 20px rgba(0,170,255,0.2); }
+  .btn-warn { color: var(--warn); border-color: var(--warn); }
+  .btn-warn:hover { background: rgba(255,170,0,0.08); box-shadow: 0 0 20px rgba(255,170,0,0.2); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn:disabled:hover { background: transparent; box-shadow: none; }
+
+  .playing-card {
+    width: 80px; height: 112px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid #2a3a5c; border-radius: 10px;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace; font-weight: 700;
+    animation: cardDeal 0.4s ease-out; position: relative; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5); margin-right: 10px; vertical-align: top;
+  }
+  .playing-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+    pointer-events: none;
+  }
+  .playing-card.face-down {
+    background: repeating-linear-gradient(45deg, #1a1a2e, #1a1a2e 5px, #16213e 5px, #16213e 10px);
+    border-color: rgba(0,255,136,0.27);
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  #matrix-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .matrix-col {
+    position: absolute; top: -20%; font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; color: rgba(0,255,136,0.03); white-space: pre; line-height: 1.4;
+  }
+  .content { position: relative; z-index: 1; }
+
+  .hud {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px;
+    background: linear-gradient(90deg, rgba(17,24,39,0.93), rgba(10,14,23,0.93), rgba(17,24,39,0.93));
+    border-bottom: 1px solid var(--border); font-family: 'Orbitron', monospace;
+    position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
+  }
+
+  .email-container {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4); max-width: 720px; margin: 0 auto;
+    animation: fadeSlideUp 0.5s ease-out;
+  }
+  .email-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--bg-card), #0f1629);
+  }
+  .email-body-content {
+    white-space: pre-wrap; font-family: 'Rajdhani', sans-serif; line-height: 1.6;
+    padding: 24px; font-size: 15px; min-height: 200px; color: var(--text);
+  }
+  .verdict-area {
+    padding: 20px 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 16px; justify-content: center; background: rgba(10,14,23,0.53);
+  }
+
+  .leaderboard-row {
+    display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+    border-radius: 6px; position: relative; overflow: hidden;
+    animation: fadeSlideUp 0.4s ease-out both; margin-bottom: 8px;
+  }
+
+  input[type="text"] {
+    width: 100%; padding: 14px 16px; background: var(--bg);
+    border: 2px solid rgba(0,255,136,0.27); border-radius: 4px; color: var(--neon);
+    font-family: 'Share Tech Mono', monospace; font-size: 18px;
+    outline: none; letter-spacing: 2px; caret-color: var(--neon); transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--neon); }
+
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; background: linear-gradient(90deg, var(--neon), var(--blue)); }
+
+  .title-gradient {
+    font-family: 'Orbitron', monospace; font-size: 56px; font-weight: 900;
+    background: linear-gradient(135deg, var(--neon), var(--blue), var(--neon));
+    background-size: 200% 200%; animation: gradientShift 4s ease infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: 4px; margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div id="matrix-bg"></div>
+<div class="scanline-overlay"></div>
+
+<div class="content">
+
+  <!-- TITLE -->
+  <div id="screen-title" class="screen active">
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center">
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;letter-spacing:8px;color:var(--neon);font-family:'Share Tech Mono',monospace;animation:pulse 2s infinite">
+          ▸ INITIALIZING PHISHGUARD v2.0
+        </div>
+      </div>
+      <h1 class="title-gradient">PHISHGUARD</h1>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text-dim);margin-bottom:8px;letter-spacing:4px">CYBER DEFENSE TRAINING SIMULATOR</div>
+      <div style="font-size:14px;color:var(--text-dim);max-width:460px;margin-bottom:40px;line-height:1.6">
+        Analyze incoming emails. Identify phishing attempts. Protect the network.
+        Fail too many times and ransomware takes over — you'll have to win at Blackjack to decrypt your files.
+      </div>
+      <button class="btn btn-neon" onclick="showScreen('name')" style="font-size:14px;padding:16px 48px">▸ BEGIN MISSION</button>
+      <div style="position:fixed;bottom:24px;font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(107,114,148,0.53);letter-spacing:3px">BYU CYBERSECURITY — FINAL PROJECT</div>
+    </div>
+  </div>
+
+  <!-- NAME -->
+  <div id="screen-name" class="screen">
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px">
+      <div style="font-family:'Orbitron',monospace;font-size:10px;color:var(--neon);letter-spacing:5px;margin-bottom:24px">AGENT IDENTIFICATION</div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:40px;width:100%;max-width:400px">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);margin-bottom:12px">ENTER CALLSIGN:</div>
+        <input type="text" id="player-name" placeholder="Agent_" maxlength="20" onkeydown="if(event.key==='Enter'&&this.value.trim())startGame()">
+        <button class="btn btn-neon" onclick="startGame()" style="width:100%;margin-top:20px">DEPLOY</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div class="hud">
+      <div style="display:flex;gap:32px;align-items:center">
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);letter-spacing:3px">SCORE</div>
+          <div id="hud-score" style="font-size:22px;color:var(--neon);font-weight:900">0</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-dim);letter-spacing:3px">LIVES</div>
+          <div id="hud-lives" style="font-size:18px;display:flex;gap:4px"></div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:9px;color:var(--text-dim);letter-spacing:3px">ROUND</div>
+        <div id="hud-round" style="font-size:16px;color:var(--text)"></div>
+      </div>
+      <div>
+        <div class="progress-bar" style="width:140px"><div id="hud-progress" class="progress-fill" style="width:0%"></div></div>
+        <div id="hud-percent" style="font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-top:4px;text-align:right"></div>
+      </div>
+    </div>
+    <div style="padding:32px 20px;max-width:800px;margin:0 auto">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-bottom:20px;text-align:center;letter-spacing:3px">▸ ANALYZE THE FOLLOWING EMAIL TRANSMISSION</div>
+      <div id="email-display"></div>
+      <div id="result-display" style="display:none"></div>
+      <div id="next-btn-area" style="text-align:center;margin-top:24px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- BLACKJACK -->
+  <div id="screen-blackjack" class="screen">
+    <div style="min-height:100vh;background:radial-gradient(ellipse at center,#1a0a0a 0%,var(--bg) 70%);padding:40px 20px;font-family:'Orbitron',monospace">
+      <div style="text-align:center;margin-bottom:40px">
+        <div style="font-size:11px;color:var(--danger);letter-spacing:6px;animation:pulse 1.5s infinite;margin-bottom:8px">⚠ RANSOMWARE DETECTED ⚠</div>
+        <div style="font-size:32px;font-weight:900;color:var(--danger);animation:glitch 0.8s infinite,ransomFlicker 3s infinite;text-shadow:0 0 20px rgba(255,51,85,0.4)">YOUR FILES ARE ENCRYPTED</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text-dim);margin-top:12px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.6">
+          Your system has been compromised. Win at Blackjack to decrypt your files. Lose and the encryption key is destroyed forever.
+        </div>
+        <div style="margin-top:16px;padding:8px 20px;display:inline-block;border:1px solid rgba(255,51,85,0.27);border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--warn)">WINS: 0/1 REQUIRED</div>
+      </div>
+      <div style="max-width:600px;margin:0 auto">
+        <div id="bj-deal-area" style="text-align:center;animation:fadeSlideUp 0.5s ease">
+          <button class="btn btn-danger" onclick="bjDeal()" style="font-size:16px;padding:16px 48px">DEAL CARDS</button>
+        </div>
+        <div id="bj-game-area" style="display:none">
+          <div style="margin-bottom:40px">
+            <div style="font-size:10px;color:var(--text-dim);letter-spacing:3px;margin-bottom:12px">DEALER <span id="bj-dealer-val"></span></div>
+            <div id="bj-dealer-cards" style="display:flex;gap:10px"></div>
+          </div>
+          <div style="margin-bottom:30px">
+            <div style="font-size:10px;color:var(--neon);letter-spacing:3px;margin-bottom:12px">YOUR HAND (<span id="bj-player-val">0</span>)</div>
+            <div id="bj-player-cards" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+          </div>
+          <div id="bj-actions" style="display:flex;gap:16px"></div>
+          <div id="bj-message" style="margin-top:24px;display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="screen-leaderboard" class="screen">
+    <div style="min-height:100vh;background:var(--bg);padding:60px 20px;font-family:'Orbitron',monospace">
+      <div style="max-width:640px;margin:0 auto">
+        <div style="text-align:center;margin-bottom:48px">
+          <div style="font-size:10px;color:var(--neon);letter-spacing:6px;margin-bottom:8px">MISSION COMPLETE</div>
+          <div style="font-size:36px;font-weight:900;color:var(--text);text-shadow:0 0 30px rgba(0,255,136,0.2)">LEADERBOARD</div>
+          <div style="font-size:10px;color:var(--text-dim);letter-spacing:4px;margin-top:8px">TOP PHISHING ANALYSTS</div>
+        </div>
+        <div id="leaderboard-list"></div>
+        <div style="display:flex;justify-content:center;gap:16px;margin-top:48px">
+          <button class="btn btn-neon" onclick="resetToTitle()" style="padding:14px 40px">PLAY AGAIN</button>
+          <button class="btn btn-danger" id="clear-btn" onclick="confirmClear()" style="padding:14px 28px;font-size:11px">CLEAR SCORES</button>
+        </div>
+        <div style="text-align:center;margin-top:48px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim)">BYU Intro to Cybersecurity — Final Project</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const EMAILS=[{id:1,from:"security@paypa1.com",subject:"Urgent: Your Account Has Been Compromised",body:"Dear Valued Customer,\n\nWe have detected unusual activity on your PayPal account. Your account has been temporarily limited.\n\nPlease click the link below to verify your identity and restore full access:\n\nhttps://paypa1-secure.com/verify?id=38291\n\nIf you don't verify within 24 hours, your account will be permanently suspended.\n\nPayPal Security Team",isPhishing:true,hints:["Domain is 'paypa1.com' (number 1 instead of letter l)","Urgency tactics with 24-hour deadline","Suspicious verification URL doesn't match PayPal's domain","Generic greeting instead of your name"]},{id:2,from:"noreply@amazon.com",subject:"Your Amazon.com order #112-9384756-2938475",body:"Hello John,\n\nYour order has shipped! Here are the details:\n\nOrder #112-9384756-2938475\nItem: Logitech MX Master 3S Mouse\nEstimated delivery: March 25, 2026\n\nTrack your package:\nhttps://amazon.com/gp/your-account/order-history\n\nThank you for shopping with us!\nAmazon.com",isPhishing:false,hints:["Legitimate amazon.com domain","Specific order number and item details","Standard Amazon email format","Link goes to actual Amazon domain"]},{id:3,from:"it-support@byu-edu.net",subject:"BYU Password Expiration Notice",body:'Dear Student,\n\nYour BYU NetID password will expire in 2 days. To avoid losing access to campus services, please update your password immediately.\n\nClick here to update: https://cas-byu-edu.net/reset\n\nBYU Information Technology\n"Helping you succeed"',isPhishing:true,hints:["Domain is 'byu-edu.net' not 'byu.edu'","BYU uses cas.byu.edu, not cas-byu-edu.net","Generic 'Dear Student' greeting","Artificial urgency about password expiration"]},{id:4,from:"notifications@github.com",subject:"[GitHub] A new sign-in to your account",body:"Hey there,\n\nWe noticed a new sign-in to your GitHub account:\n\nDevice: Chrome on Windows\nLocation: Provo, UT, United States\nTime: March 20, 2026 at 2:14 PM MST\n\nIf this was you, you can ignore this email.\nIf not, please review your security settings:\nhttps://github.com/settings/security\n\nThanks,\nThe GitHub Team",isPhishing:false,hints:["Legitimate github.com domain","Specific device, location, and time details","Links to real GitHub settings page","Doesn't demand immediate action"]},{id:5,from:"ceo@company-internal.com",subject:"URGENT - Wire Transfer Needed",body:"Hi,\n\nI need you to process an urgent wire transfer of $15,000 to a vendor. I'm in a meeting and can't call.\n\nPlease use these details:\nBank: First National\nRouting: 021000089\nAccount: 483920174\n\nDo this ASAP and confirm when done. Keep this between us for now.\n\nThanks,\nMichael (CEO)",isPhishing:true,hints:["CEO fraud / Business Email Compromise (BEC)","'Keep this between us' is a major red flag","Urgency + inability to verify by phone","Wire transfers are a common phishing target"]},{id:6,from:"no-reply@netflix.com",subject:"Your Netflix membership is on hold",body:"Hi there,\n\nWe're having trouble with your current billing information. We were unable to validate your payment method for the next billing cycle.\n\nUpdate your payment details at:\nhttps://netflix-billing-update.com/account\n\nIf we don't hear from you soon, we'll have to cancel your membership.\n\nThe Netflix Team",isPhishing:true,hints:["Link goes to 'netflix-billing-update.com' not netflix.com","Vague billing issue without specifics","Threat of cancellation creates urgency","From address looks legit but link is fake"]},{id:7,from:"registrar@byu.edu",subject:"Fall 2026 Registration Reminder",body:"Dear Student,\n\nThis is a reminder that Fall 2026 class registration opens on April 7, 2026.\n\nPlease review your registration time on myBYU:\nhttps://my.byu.edu\n\nMake sure to meet with your academic advisor before registering.\n\nBYU Office of the Registrar\n(801) 422-2631",isPhishing:false,hints:["Legitimate byu.edu domain","Links to official my.byu.edu portal","Includes real BYU phone number","No urgency tactics or threats"]},{id:8,from:"support@microsft-365.com",subject:"Action Required: Unusual Sign-in Activity",body:"Dear User,\n\nWe detected an unusual sign-in attempt on your Microsoft 365 account from:\n\nLocation: Moscow, Russia\nIP: 185.220.101.42\n\nIf this wasn't you, secure your account NOW:\nhttps://microsft-365.com/security/verify\n\nFailure to act within 1 hour will result in account lockout.\n\nMicrosoft Security",isPhishing:true,hints:["'microsft-365.com' is misspelled (missing 'o')","1-hour deadline is extreme urgency tactic","Microsoft uses microsoft.com, not microsft-365.com","Fear-based tactics with Russian IP address"]},{id:9,from:"donotreply@venmo.com",subject:"You paid Sarah M. $45.00",body:'Hi John,\n\nYou paid Sarah M. $45.00 for "Dinner split \u{1F355}"\n\nDate: March 19, 2026\nPayment ID: 3847291056382\n\nView transaction: https://venmo.com/account/statement\n\nVenmo | @venmo',isPhishing:false,hints:["Legitimate venmo.com domain","Specific payment details and ID","Link goes to real Venmo domain","Matches standard Venmo notification format"]},{id:10,from:"prize@google-rewards.net",subject:"\u{1F389} Congratulations! You've been selected!",body:"CONGRATULATIONS!!!\n\nYou have been randomly selected as today's lucky Google user!\n\nYou have won a $1,000 Google Play Gift Card!\n\nClaim your prize now before it expires:\nhttps://google-rewards.net/claim?winner=true\n\nJust complete a short survey and provide your shipping address.\n\nGoogle Rewards Team",isPhishing:true,hints:["'google-rewards.net' is not a Google domain","Too good to be true \u2014 random prize selection","Excessive exclamation marks and urgency","Asks for personal information via survey"]},{id:11,from:"shipping@ups.com",subject:"UPS: Your package is scheduled for delivery",body:"Hello,\n\nYour UPS package is out for delivery today.\n\nTracking Number: 1Z999AA10123456784\nEstimated Delivery: March 20, 2026 by 7:00 PM\nService: UPS Ground\n\nTrack your package:\nhttps://ups.com/track?tracknum=1Z999AA10123456784\n\nUPS My Choice\u{00AE}",isPhishing:false,hints:["Legitimate ups.com domain","Valid UPS tracking number format","Standard UPS delivery notification","No requests for personal information"]},{id:12,from:"admin@byu-IT-helpdesk.org",subject:"Mandatory: Update Your Multi-Factor Authentication",body:"Attention BYU Students and Faculty,\n\nDue to a recent security breach, all users must re-authenticate their MFA tokens within 48 hours.\n\nRe-verify here: https://byu-IT-helpdesk.org/mfa-reset\n\nFailure to comply will result in immediate account deactivation.\n\nBYU IT Security Department",isPhishing:true,hints:["'byu-IT-helpdesk.org' is not an official BYU domain","Claims of a 'security breach' to create panic","48-hour mandatory deadline is pressure tactic","BYU IT uses @byu.edu addresses"]}];
+
+// ── STATE ──
+const ROUNDS = 8;
+let state = {playerName:"",round:0,score:0,lives:3,detected:0,gameEmails:[],currentResult:null,currentTimestamp:null};
+let hasSaved = false;
+let bj = {deck:[],playerHand:[],dealerHand:[],phase:"betting"};
+
+// ── STORAGE ──
+function loadLB(){try{return JSON.parse(localStorage.getItem("phishguard_lb"))||[];}catch{return[];}}
+function saveLB(e){const d=loadLB();const ts=Date.now();d.push({...e,timestamp:ts});localStorage.setItem("phishguard_lb",JSON.stringify(d));state.currentTimestamp=ts;return d;}
+function confirmClear(){if(confirm("Clear all leaderboard data?")){localStorage.removeItem("phishguard_lb");state.currentTimestamp=null;renderLeaderboard();}}
+
+// ── SCREENS ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');window.scrollTo(0,0);}
+function resetToTitle(){state.playerName="";document.getElementById('player-name').value="";hasSaved=false;showScreen('title');}
+
+// ── MATRIX ──
+!function(){const c=document.getElementById('matrix-bg');for(let i=0;i<15;i++){const col=document.createElement('div');col.className='matrix-col';col.style.left=(i/15*100)+'%';col.style.animation=`matrixRain ${8+Math.random()*12}s linear infinite`;col.style.animationDelay=`${Math.random()*-15}s`;let ch='';for(let j=0;j<40;j++)ch+=String.fromCharCode(0x30A0+Math.random()*96)+'\n';col.textContent=ch;c.appendChild(col);}}();
+
+// ── HUD ──
+function renderHUD(){
+  document.getElementById('hud-score').textContent=state.score;
+  let h='';for(let i=0;i<3;i++){const a=i<state.lives;h+=`<span style="color:${a?'var(--danger)':'rgba(255,51,85,0.13)'};${a?'filter:drop-shadow(0 0 4px rgba(255,51,85,0.53))':''}">♥</span>`;}
+  document.getElementById('hud-lives').innerHTML=h;
+  document.getElementById('hud-round').innerHTML=`${state.round+1}<span style="color:var(--text-dim)">/${ROUNDS}</span>`;
+  const p=(state.round+1)/ROUNDS*100;
+  document.getElementById('hud-progress').style.width=p+'%';
+  document.getElementById('hud-percent').textContent=Math.round(p)+'% COMPLETE';
+}
+
+// ── START ──
+function startGame(){
+  const n=document.getElementById('player-name').value.trim();if(!n)return;
+  state.playerName=n;state.round=0;state.score=0;state.lives=3;state.detected=0;
+  state.currentResult=null;state.currentTimestamp=null;
+  state.gameEmails=[...EMAILS].sort(()=>Math.random()-0.5).slice(0,ROUNDS);
+  hasSaved=false;showScreen('game');renderGame();
+}
+
+// ── RENDER GAME ──
+function renderGame(){
+  const e=state.gameEmails[state.round];renderHUD();
+  const today=new Date().toLocaleDateString();
+  document.getElementById('email-display').innerHTML=`
+    <div class="email-container">
+      <div class="email-header">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+          <div style="font-family:'Orbitron',monospace;font-size:9px;color:var(--text-dim);letter-spacing:3px">INCOMING TRANSMISSION</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim)">${today}</div>
+        </div>
+        <div style="margin-bottom:8px">
+          <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-right:8px">FROM:</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--warn)">${e.from}</span>
+        </div>
+        <div>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-right:8px">SUBJ:</span>
+          <span style="font-size:18px;font-weight:600;color:var(--text)">${e.subject}</span>
+        </div>
+      </div>
+      <div class="email-body-content">${e.body}</div>
+      <div class="verdict-area">
+        <button class="btn btn-neon" onclick="submitVerdict(true)" style="flex:1;max-width:220px">🛡️ PHISHING</button>
+        <button class="btn btn-blue" onclick="submitVerdict(false)" style="flex:1;max-width:220px">✓ LEGITIMATE</button>
+      </div>
+    </div>`;
+  document.getElementById('result-display').style.display='none';
+  document.getElementById('next-btn-area').style.display='none';
+}
+
+// ── VERDICT ──
+function submitVerdict(calledPhishing){
+  const e=state.gameEmails[state.round];
+  const correct=calledPhishing===e.isPhishing;
+  state.currentResult=correct;
+  if(correct){state.score+=e.isPhishing?150:100;if(e.isPhishing)state.detected++;}else{state.lives--;}
+  renderHUD();
+  const va=document.querySelector('.verdict-area');if(va)va.remove();
+  const color=correct?'#00ff88':'#ff3355';
+  const hints=e.hints.map((h,i)=>`<div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text);padding:6px 0;${i<e.hints.length-1?'border-bottom:1px solid var(--border)':''};display:flex;gap:8px;align-items:flex-start"><span style="color:var(--warn)">›</span>${h}</div>`).join('');
+  const rd=document.getElementById('result-display');
+  rd.style.display='block';rd.style.animation=correct?'fadeSlideUp 0.3s ease':'shake 0.4s ease';
+  rd.innerHTML=`<div style="max-width:720px;margin:20px auto 0;padding:24px;border:1px solid ${color}44;border-radius:8px;background:${color}08">
+    <div style="font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:${color};margin-bottom:12px">${correct?'✓ CORRECT ANALYSIS':'✗ INCORRECT — SYSTEM BREACHED'}</div>
+    <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px">This email was: <span style="color:${e.isPhishing?'var(--danger)':'var(--neon)'};font-weight:700">${e.isPhishing?'PHISHING':'LEGITIMATE'}</span></div>
+    <div style="font-family:'Orbitron',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;margin-bottom:8px">INDICATORS:</div>
+    ${hints}</div>`;
+  const nba=document.getElementById('next-btn-area');nba.style.display='block';
+  let label='NEXT EMAIL ▸';
+  if(state.round+1>=ROUNDS)label='VIEW RESULTS';
+  else if(state.lives<=0&&!correct)label='⚠ FACE THE RANSOMWARE';
+  nba.innerHTML=`<button class="btn btn-neon" onclick="nextRound()">${label}</button>`;
+}
+
+// ── NEXT ──
+function nextRound(){
+  if(state.lives<=0&&!state.currentResult){showScreen('blackjack');initBlackjack();return;}
+  if(state.round+1>=ROUNDS){goToLeaderboard();return;}
+  state.round++;state.currentResult=null;renderGame();
+}
+
+// ── LEADERBOARD ──
+function goToLeaderboard(){
+  if(!hasSaved){hasSaved=true;saveLB({name:state.playerName,score:state.score,detected:state.detected,total:ROUNDS});}
+  showScreen('leaderboard');renderLeaderboard();
+}
+function renderLeaderboard(){
+  const data=loadLB();const sorted=[...data].sort((a,b)=>b.score-a.score);
+  const max=sorted[0]?.score||1;const medals=['🥇','🥈','🥉'];
+  const list=document.getElementById('leaderboard-list');
+  const cb=document.getElementById('clear-btn');
+  if(!sorted.length){
+    list.innerHTML=`<div style="text-align:center;padding:60px 20px;border:1px dashed var(--border);border-radius:8px;font-family:'Share Tech Mono',monospace">
+      <div style="font-size:32px;margin-bottom:12px">📡</div>
+      <div style="font-size:14px;color:var(--text-dim)">NO DATA YET</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Play a game to appear on the leaderboard</div></div>`;
+    cb.style.display='none';return;
+  }
+  cb.style.display='';
+  list.innerHTML=sorted.map((e,i)=>{
+    const cur=e.timestamp===state.currentTimestamp;
+    const dt=e.timestamp?new Date(e.timestamp).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    const bg=cur?'rgba(0,255,136,0.04)':'var(--bg-card)';
+    const bd=cur?'rgba(0,255,136,0.27)':'var(--border)';
+    const nc=cur?'var(--neon)':'var(--text)';
+    const bar=i===0?'linear-gradient(90deg,var(--warn),#ffcc00)':(cur?'var(--neon)':'var(--blue)');
+    const now=cur?`<span style="font-size:9px;color:var(--bg);background:var(--neon);padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:1px;font-family:'Orbitron',monospace">NOW</span>`:'';
+    const lb=cur?'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--neon)"></div>':'';
+    return`<div class="leaderboard-row" style="background:${bg};border:1px solid ${bd};animation-delay:${i*0.08}s">
+      ${lb}<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:${i<3?20:14}px;color:${i<3?'var(--warn)':'var(--text-dim)'};font-family:'Orbitron',monospace">${i<3?medals[i]:'#'+(i+1)}</div>
+      <div style="flex:1"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px;font-weight:700;color:${nc};font-family:'Orbitron',monospace">${e.name}</span>${now}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:2px">${dt}</div>
+      <div style="margin-top:6px;height:3px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;border-radius:2px;width:${(e.score/max)*100}%;background:${bar};transition:width 1s ease"></div></div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:900;color:${nc};font-family:'Orbitron',monospace">${e.score}</div>
+      <div style="font-size:9px;color:var(--text-dim);letter-spacing:2px;font-family:'Orbitron',monospace">${e.detected}/${e.total} CAUGHT</div></div></div>`;
+  }).join('');
+}
+
+// ── BLACKJACK ──
+const SUITS=['♠','♥','♦','♣'],RANKS_BJ=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+function mkDeck(){const d=[];for(const s of SUITS)for(const r of RANKS_BJ)d.push({suit:s,rank:r});for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}return d;}
+function cVal(c){if(['J','Q','K'].includes(c.rank))return 10;if(c.rank==='A')return 11;return parseInt(c.rank);}
+function hVal(h){let t=h.reduce((s,c)=>s+cVal(c),0),a=h.filter(c=>c.rank==='A').length;while(t>21&&a>0){t-=10;a--;}return t;}
+function isRed(c){return c.suit==='♥'||c.suit==='♦';}
+function draw(){if(bj.deck.length<10)bj.deck.push(...mkDeck());return bj.deck.pop();}
+
+function rCard(card,fd){
+  if(fd)return`<div class="playing-card face-down"><div style="font-size:20px;color:rgba(0,255,136,0.4)">?</div></div>`;
+  const cl=isRed(card)?'var(--danger)':'var(--blue)';
+  return`<div class="playing-card"><div style="position:absolute;top:6px;left:8px;font-size:12px;color:${cl};line-height:1"><div>${card.rank}</div><div style="font-size:10px">${card.suit}</div></div><div style="font-size:28px;color:${cl}">${card.suit}</div><div style="position:absolute;bottom:6px;right:8px;font-size:12px;color:${cl};transform:rotate(180deg);line-height:1"><div>${card.rank}</div><div style="font-size:10px">${card.suit}</div></div></div>`;
+}
+
+function renderBJ(){
+  const show=bj.phase!=='playing';
+  document.getElementById('bj-dealer-cards').innerHTML=bj.dealerHand.map((c,i)=>rCard(c,!show&&i===1)).join('');
+  document.getElementById('bj-dealer-val').textContent=show&&bj.dealerHand.length?`(${hVal(bj.dealerHand)})`:'';
+  document.getElementById('bj-player-cards').innerHTML=bj.playerHand.map(c=>rCard(c)).join('');
+  document.getElementById('bj-player-val').textContent=hVal(bj.playerHand);
+  document.getElementById('bj-actions').innerHTML=bj.phase==='playing'?
+    `<button class="btn btn-neon" onclick="bjHit()">HIT</button><button class="btn btn-warn" onclick="bjStand()">STAND</button>`:'';
+}
+
+function bjMsg(msg,win){
+  const el=document.getElementById('bj-message');const raw=win?'#00ff88':'#ff3355';
+  el.style.display='block';el.style.animation='fadeSlideUp 0.3s ease';
+  el.innerHTML=`<div style="padding:16px 24px;border:1px solid ${raw}44;border-radius:4px;font-size:16px;font-weight:700;color:${raw};background:${raw}08;font-family:'Orbitron',monospace;text-align:center">${msg}</div>`;
+}
+
+function initBlackjack(){
+  bj.deck=mkDeck();bj.playerHand=[];bj.dealerHand=[];bj.phase='betting';
+  document.getElementById('bj-deal-area').style.display='block';
+  document.getElementById('bj-game-area').style.display='none';
+  document.getElementById('bj-message').style.display='none';
+}
+
+function bjDeal(){
+  document.getElementById('bj-deal-area').style.display='none';
+  const ga=document.getElementById('bj-game-area');ga.style.display='block';ga.style.animation='fadeSlideUp 0.5s ease';
+  document.getElementById('bj-message').style.display='none';
+  bj.playerHand=[draw(),draw()];bj.dealerHand=[draw(),draw()];bj.phase='playing';renderBJ();
+  if(hVal(bj.playerHand)===21){bj.phase='result';renderBJ();bjMsg('BLACKJACK! DECRYPTION KEY FOUND!',true);setTimeout(bjWin,1800);}
+}
+
+function bjHit(){bj.playerHand.push(draw());renderBJ();if(hVal(bj.playerHand)>21){bj.phase='result';renderBJ();bjMsg('BUST! ENCRYPTION STRENGTHENED...',false);setTimeout(bjLose,2000);}}
+
+function bjStand(){bj.phase='dealer';renderBJ();dealerPlay();}
+
+function dealerPlay(){
+  if(hVal(bj.dealerHand)<17){bj.dealerHand.push(draw());renderBJ();setTimeout(dealerPlay,600);}
+  else{bj.phase='result';renderBJ();const pv=hVal(bj.playerHand),dv=hVal(bj.dealerHand);
+    if(dv>21||pv>dv){bjMsg('YOU WIN! DECRYPTING FILES...',true);setTimeout(bjWin,1800);}
+    else if(pv===dv){bjMsg('PUSH — TRY AGAIN, HACKER.',false);setTimeout(()=>{document.getElementById('bj-message').style.display='none';bjDeal();},2000);}
+    else{bjMsg('DEALER WINS. DATA CORRUPTED.',false);setTimeout(bjLose,2000);}
+  }
+}
+
+function bjWin(){state.lives=1;if(state.round+1>=ROUNDS){goToLeaderboard();return;}state.round++;state.currentResult=null;showScreen('game');renderGame();}
+function bjLose(){goToLeaderboard();}
+</script>
+</body>
+</html>
